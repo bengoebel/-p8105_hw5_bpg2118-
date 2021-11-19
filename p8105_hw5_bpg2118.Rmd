@@ -1,0 +1,109 @@
+---
+title: "p8105_hw5_bpg2118"
+author: "Benjamin Goebel"
+date: "11/18/2021"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+## Problem 1
+
+Let's begin by reading in the data.
+```{r message=FALSE}
+# Read in the homicide data
+homicide_data <- read_csv(here::here("data", "homicide-data.csv"))
+```
+There are `r nrow(homicide_data)` rows and `r ncol(homicide_data)` columns.
+
+Let's add a city_state column.
+```{r}
+# Add city_state column
+homicide_data <- homicide_data %>%
+  mutate(city_state = str_c(city, ", ", state))
+```
+
+Now, we can summarize the total number of homicides and unsolved homicides in 
+each city, state.
+```{r}
+# Summarize total number of homicides and unsolved homicides in each city, state
+# Unsolved homicide: disposition == Closed without arrest | disposition ==
+#                    Open/No arrest.
+city_state_summary_homicides <- homicide_data %>%
+  group_by(city_state) %>%
+  summarize(
+    n_unsolved_homicides = sum(disposition == "Closed without arrest" |
+                               disposition == "Open/No arrest"),
+    n_homicides = n()
+  )
+```
+
+As requested, we can estimate the proportion of unsolved homicides in 
+Baltimore, MD.
+```{r}
+# Get Baltimore summary homicides and then estimate proportion of unsolved
+# homicides
+baltimore_summary_homicides <- city_state_summary_homicides %>%
+  filter(city_state == "Baltimore, MD")
+baltimore_prop_test <- prop.test(pull(baltimore_summary_homicides, n_unsolved_homicides),
+          pull(baltimore_summary_homicides, n_homicides))
+```
+
+Next, we can tidy the output from the prop test and view the proportion 
+estimate, as well as the lower and upper bounds of the confidence interval.
+
+```{r}
+# Tidy Baltimore prop test
+# Get proportion estimate and lower and upper bounds of the confidence interval
+broom::tidy(baltimore_prop_test) %>%
+  select(estimate, conf.low, conf.high) %>%
+  knitr::kable()
+```
+Now, we can get the proportion estimate and lower and upper bounds for each
+city.
+
+```{r warning=FALSE}
+# Create a prop test function to apply to any SUMMARIZED city df
+city_prop_test_fun <- function(city_df) {
+  return(prop.test(pull(city_df, n_unsolved_homicides), 
+                   pull(city_df, n_homicides)))
+}
+
+# Nest homicide data
+# Map prop test to each city homicide data
+# Map tidy to each prop test
+# Select columns
+city_state_prop_test <- city_state_summary_homicides %>%
+  nest(data = n_unsolved_homicides:n_homicides) %>%
+  mutate(
+    test_results = map(data, city_prop_test_fun),
+    tidy_results = map(test_results, broom::tidy)
+  ) %>%
+  select(city_state, tidy_results) %>%
+  unnest(tidy_results) %>%
+  select(city_state, estimate, conf.low, conf.high)
+```
+Next, we will create a plot that shows the proportion estimates with 
+confidence intervals for each city.
+
+```{r}
+# Plot proportion estimate of unsolved homicides for 50 large U.S. cities
+# Use geom_errorbar to plot confidence intervals
+city_state_prop_test %>%
+  mutate(city_state = fct_reorder(city_state, estimate)) %>%
+  ggplot(aes(x = city_state, y = estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) +
+  theme_bw() +
+  labs(
+    x = "U.S. City",
+    y = "Proportion Estimate of Unsolved Homicides",
+    title = "Proportion Estimate of Unsolved Homicides for 50 Large U.S. Cities"
+  ) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+        plot.title = element_text(hjust = 0.5))
+  
+```
+

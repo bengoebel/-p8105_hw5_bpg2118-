@@ -1,7 +1,7 @@
 ---
 title: "p8105_hw5_bpg2118"
 author: "Benjamin Goebel"
-date: "11/18/2021"
+date: "11/20/2021"
 output: github_document
 ---
 
@@ -17,7 +17,12 @@ Let's begin by reading in the data.
 # Read in the homicide data
 homicide_data <- read_csv(here("data", "homicide-data.csv"))
 ```
-There are `r nrow(homicide_data)` rows and `r ncol(homicide_data)` columns.
+There are `r nrow(homicide_data)` rows and `r ncol(homicide_data)` columns. The
+average victim age is 
+`r round(mean(as.numeric(pull(homicide_data, victim_age)), na.rm = TRUE),1)` 
+years with 
+`r 100*round(mean(pull(homicide_data,victim_sex)=="Female",na.rm=TRUE), 3)`% of 
+victims being female.
 
 Let's add a city_state column.
 ```{r}
@@ -49,7 +54,7 @@ Baltimore, MD.
 baltimore_summary_homicides <- city_state_summary_homicides %>%
   filter(city_state == "Baltimore, MD")
 baltimore_prop_test <- prop.test(pull(baltimore_summary_homicides, n_unsolved_homicides),
-          pull(baltimore_summary_homicides, n_homicides))
+                                 pull(baltimore_summary_homicides, n_homicides))
 ```
 
 Next, we can tidy the output from the prop test and view the proportion 
@@ -73,7 +78,7 @@ city_prop_test_fun <- function(city_df) {
 }
 
 # Nest homicide data
-# Map prop test to each city homicide data
+# Map prop test (city_prop_test_fun) to each city homicide data
 # Map tidy to each prop test
 # Select columns
 city_state_prop_test <- city_state_summary_homicides %>%
@@ -87,12 +92,17 @@ city_state_prop_test <- city_state_summary_homicides %>%
   select(city_state, estimate, conf.low, conf.high)
 ```
 Next, we will create a plot that shows the proportion estimates with 
-confidence intervals for each city.
+confidence intervals for each city. When creating this plot, I noticed there
+was one city, Tulsa, AL, with one homicide and zero unsolved homicides. This
+is an error since this city does not exist. So, I filtered out this city
+when creating the plot.
 
 ```{r}
 # Plot proportion estimate of unsolved homicides for 50 large U.S. cities
 # Use geom_errorbar to plot confidence intervals
+# Filter out city Tulsa, AL, as this is mis-entered data
 city_state_prop_test %>%
+  filter(city_state != "Tulsa, AL") %>%
   mutate(city_state = fct_reorder(city_state, estimate)) %>%
   ggplot(aes(x = city_state, y = estimate)) +
   geom_point() +

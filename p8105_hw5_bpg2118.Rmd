@@ -120,10 +120,11 @@ city_state_prop_test %>%
 
 ## Problem 2
 
-Let's do the following:
+Let's do the following:  
+
 *   Create a data frame with one column being a list of file names and a
 second column being a list column of data frames with each data frame being
-the corresponding read-in data from the file name.
+the corresponding read-in data from the file name.  
 *   Unnest the list column of data frames.  
 *   Pivot the data so that week is in one column and the week measurement is in
 another column.  
@@ -157,11 +158,11 @@ longitudinal_df <- tibble(
          treatment_type = str_replace(treatment_type, "con", "control"),
          treatment_type = str_replace(treatment_type, "exp", "experimental"))
 ```
-Now, that we have the data in a tidy format, let's plot week measurements by
-week for each subject in the experiment. We can color by treatment group
+Now, that we have the data in a tidy format, let's plot week measurements 
+for each subject in the experiment. We can color by treatment group
 to compare the two treatment groups.
 ```{r}
-# Spaghetti plot: week measurement by week for each participant colored by
+# Spaghetti plot: measurement by week for each participant colored by
 # treatment group
 longitudinal_df %>%
   ggplot(aes(x = week, y = week_results, group = treatment_type_patient_id,
@@ -170,13 +171,14 @@ longitudinal_df %>%
   scale_x_continuous(breaks = 1:8) +
   theme_bw() +
   labs(
-    title = "Week Measurement by Week Number for each Patient",
+    title = "Week Measurement by Week Number for each Patient\n colored by Treatment Arm",
     x = "Week Number",
     y = "Week Measurement",
     color = "Treatment Arm"
   ) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
+
 From the spaghetti plot, we see participants in the experimental treatment
 group tend to have higher weekly measurements than participants in
 the control treatment group.
